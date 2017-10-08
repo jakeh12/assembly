@@ -9,5 +9,4 @@ flash:
 	minipro -p $(PROM) -w $(TARGET).bin
 	wc -c $(TARGET).bin
 	hexdump $(TARGET).bin
-verify:
-	test
+
