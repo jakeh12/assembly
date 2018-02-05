@@ -5,16 +5,16 @@
 
 ;; DEFINITIONS
 ; rom chip capacity
-ROM_SIZE	EQU	$8000
+ROM_SIZE	equ	$8000
 
 ; stack
-STACK_BOTTOM	EQU 	$ffff
+STACK_BOTTOM	equ 	$ffff
 
 ; serial port
-SER_DATA	EQU	$00
-SER_FLAG	EQU	$01
-SER_BIT_RXE	EQU	0
-SER_BIT_TXF	EQU	1
+SER_DATA	equ	$00
+SER_FLAG	equ	$01
+SER_BIT_RXE	equ	0
+SER_BIT_TXF	equ	1
 
 
 	org $0000
