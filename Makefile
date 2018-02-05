@@ -3,7 +3,7 @@ PROM=AT28C256
 PORT=/dev/ttyUSB0
 
 all:
-	zasm -buy -i $(TARGET).z80 -o $(TARGET).bin
+	zasm --z80 -buy -i $(TARGET).asm -o $(TARGET).bin
 clean:
 	rm -f *.bin *.lst
 flash:
