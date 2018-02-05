@@ -1,21 +1,32 @@
-;; SERIAL
-; this program echoes whatever it receives over USB
-; compile with
-; make
-; and flash with
-; make flash
+;; PROGRAM SERIAL
+; this program echoes whatever it receives over USB compile with 'make'
+; and flash with 'make flash'
+
+
+;; DEFINITIONS
+; rom chip capacity
+ROM_SIZE	EQU	$8000
+
+; stack
+STACK_BOTTOM	EQU 	$ffff
+
+; serial port
+SER_DATA	EQU	$00
+SER_FLAG	EQU	$01
+SER_BIT_RXE	EQU	0
+SER_BIT_TXF	EQU	1
+
 
 	org $0000
 reset:
 	di
 	im 1
-	ld sp, $ffff
+	ld sp, STACK_BOTTOM
 	jp init
 	
 
 	org $0100
 init:
-	nop
 	jp main
 
 
@@ -25,32 +36,33 @@ main:
 	jp main
 
 
-;; RECEIVE_BYTE
+;; SUBROUTINE RECEIVE_BYTE
 ;  waits until receive buffer full flag goes low (data is present)
 ;  and returns the data in register a
 receive_byte:
-	in a, ($01)
-        bit 0, a
+	in a, (SER_FLAG)
+        bit SER_BIT_RXE, a
         jp nz, receive_byte
-	in a, ($00)
+	in a, (SER_DATA)
 	ret
 ; end of RECEIVE_BYTE
 
 
-;; SEND_BYTE
+;; SUBROUTINE SEND_BYTE
 ;  waits until the transmit buffer empty flag goes high (in case
 ;  there is a pending transmission) and then writes the 
 ;  byte from register a into the transmit buffer
 send_byte:
 	ld b, a
-	in a, ($01)
-	bit 1, a
-	jp nz, send_byte
+_send_byte_wait:
+	in a, (SER_FLAG)
+	bit SER_BIT_TXF, a
+	jp nz, _send_byte_wait
 	ld a, b
-	out ($00), a
+	out (SER_DATA), a
 	ret
 ; end of SEND_BYTE
 
 
 ; pad file to eeprom size
-	ds	0x8000 - $
+	ds	ROM_SIZE - $
