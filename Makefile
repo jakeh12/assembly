@@ -12,4 +12,4 @@ flash:
 	hexdump $(TARGET).bin
 monitor:
 	screen -L -h 10000 $(PORT) 115200
-	
+
