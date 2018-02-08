@@ -41,14 +41,14 @@ init:
 
 
 main:	
+	ld hl, RAM_START
+	call receive_data
+	jp RAM_START
+	;call receive_byte
 	;ld hl, RAM_START
-	;call receive_data
-	;jp RAM_START
-	call receive_byte
-	ld hl, RAM_START
-	call conv_to_ascii_hex
-	ld hl, RAM_START
-	call send_string
+	;call conv_to_ascii_hex
+	;ld hl, RAM_START
+	;call send_string
 	jp main
 
 
@@ -99,6 +99,12 @@ receive_data:
 _receive_data_loop:
 	call receive_byte	; loop until all the data bytes
 	ld (hl), a		; are received
+	ld de, hl
+	ld hl, $ff00
+	call conv_to_ascii_hex
+	ld hl, $ff00
+	call send_string
+	ld hl, de
 	inc hl
 	dec bc
 	jp nz, _receive_data_loop
