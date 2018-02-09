@@ -31,6 +31,13 @@ RAM_START	equ	$8000
 ;===============================================================================
 
 	org $0000
+	
+	; jump table
+	jp reset
+	jp init
+	jp main
+
+
 reset:
 	di
 	im 1
@@ -45,6 +52,9 @@ init:
 
 
 main:
+	ld hl, ready_to_receive_string
+	call send_string
+	
 	ld hl, RAM_START
 	call receive_data
 	
@@ -62,8 +72,11 @@ main:
 	ld hl, $ff00
 	call send_string
 	
-	ld hl, message_string
+	ld hl, bytes_received_string
 	call send_string
+	
+	jp RAM_START
+
 	jp main
 
 
@@ -307,8 +320,11 @@ _delay2:
 ; DATA
 ;===============================================================================
 
-message_string:
+bytes_received_string:
 	db " (hex) bytes received.", $0a, $0d, $00
+
+ready_to_receive_string:
+	db "Ready to receive data...", $0a, $0d, $00
 ;-------------------------------------------------------------------------------
 
 

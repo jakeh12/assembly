@@ -1,4 +1,4 @@
-TARGET=ram_prog
+TARGET=ram
 PROM=AT28C256
 PORT=/dev/ttyUSB0
 
