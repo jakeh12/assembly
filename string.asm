@@ -22,7 +22,7 @@ SER_BIT_RXE	equ	0
 SER_BIT_TXF	equ	1
 
 ; ram
-STRING_LOC	equ	$8000
+RAM_START	equ	$8000
 ;-------------------------------------------------------------------------------
 
 
@@ -46,7 +46,9 @@ init:
 
 main:
 	call receive_byte
-	ld hl, message_string
+	ld hl, RAM_START
+	call conv_to_ascii_hex
+	ld hl, RAM_START
 	call send_string
 	jp main
 
@@ -54,6 +56,52 @@ main:
 ;===============================================================================
 ; SUBROUTINES
 ;===============================================================================
+
+
+;-------------------------------------------------------------------------------
+; SUBROUTINE: CONV_TO_ASCII_HEX
+;-------------------------------------------------------------------------------
+;  converts a number into hex ascii string
+; 
+;  inputs:
+;    a	- value to be converted to hex
+;    hl	- pointer to the beginning of the string to be saved
+;
+;  outputs:
+;    none
+;
+;  modifies:
+;    af, bc, hl
+;-------------------------------------------------------------------------------
+conv_to_ascii_hex:
+	ld b, a
+	ld c, 2
+	srl a			; extract the upper 4 bits
+	srl a
+	srl a
+	srl a
+_conv_to_ascii_hex_offset:
+        cp 10
+        jp m, _conv_to_ascii_hex_offset_0_9
+        add 'a'-10		; number is in range a-f
+        jr _conv_to_ascii_hex_offset_done
+_conv_to_ascii_hex_offset_0_9:
+        add '0'			; number is in range 0-9
+_conv_to_ascii_hex_offset_done:
+	ld (hl), a
+	inc hl
+	dec c
+	jr z, _conv_to_ascii_hex_done
+	ld a, b
+	and %00001111		; extract the lower 4 bits
+	jr _conv_to_ascii_hex_offset
+_conv_to_ascii_hex_done:
+	ld (hl), $00		; add terminating NULL
+	ret
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: CONV_TO_ASCII_HEX
+;-------------------------------------------------------------------------------
+
 
 ;-------------------------------------------------------------------------------
 ; SUBROUTINE: RECEIVE_STRING
@@ -67,7 +115,7 @@ main:
 ;    none
 ;
 ;  modifies:
-;    a, f, hl
+;    af, hl
 ;-------------------------------------------------------------------------------
 receive_string:
 	call receive_byte
@@ -97,7 +145,7 @@ _receive_string_continue:
 ;    none
 ;
 ;  modifies:
-;    a, f, hl, b
+;    af, hl, b
 ;-------------------------------------------------------------------------------
 send_string:
 	ld a, (hl)
@@ -126,7 +174,7 @@ _send_string_send_byte:
 ;    a - byte received
 ;
 ;  modifies:
-;    a, f
+;    af
 ;-------------------------------------------------------------------------------
 receive_byte:
 	in a, (SER_FLAG)
@@ -153,7 +201,7 @@ receive_byte:
 ;    none
 ;
 ;  modifies:
-;    a, b, f
+;    af, b
 ;-------------------------------------------------------------------------------
 send_byte:
 	ld b, a
@@ -181,10 +229,10 @@ _send_byte_wait:
 ;    none
 ;
 ;  modifies:
-;    b, d, e
+;    c, de
 ;-------------------------------------------------------------------------------
 delay:
-	ld b, $02
+	ld c, $02
 _delay0:
 	ld d, $ff
 _delay1:
@@ -194,7 +242,7 @@ _delay2:
 	jp nz, _delay2
 	dec d
 	jp nz, _delay1
-	dec b
+	dec c
 	jp nz, _delay0
 	ret
 ;-------------------------------------------------------------------------------
