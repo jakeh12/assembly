@@ -1,9 +1,14 @@
-;; PROGRAM STRING
-; prints a string over serial port, compile with 'make'
-; and flash with 'make flash'
+;===============================================================================
+; STRING
+;-------------------------------------------------------------------------------
+; wait for a character to be received and prints out a message string
+;===============================================================================
 
 
-;; DEFINITIONS
+;-------------------------------------------------------------------------------
+; DEFINITIONS
+;-------------------------------------------------------------------------------
+
 ; rom chip capacity
 ROM_SIZE	equ	$8000
 
@@ -18,7 +23,12 @@ SER_BIT_TXF	equ	1
 
 ; ram
 STRING_LOC	equ	$8000
+;-------------------------------------------------------------------------------
 
+
+;===============================================================================
+; PROGRAM
+;===============================================================================
 
 	org $0000
 reset:
@@ -31,23 +41,34 @@ reset:
 	org $0100
 init:
 	call delay	
+	jp main
+
+
+main:
 	call receive_byte
 	ld hl, message_string
 	call send_string
 	jp main
 
 
-main:
-	ld hl, STRING_LOC
-	call receive_string
-	ld hl, STRING_LOC
-	call send_string
-	jp main
+;===============================================================================
+; SUBROUTINES
+;===============================================================================
 
-
-;; SUBROUTINE RECEIVE_STRING
-; keeps reading string in byte-by-byte until a CR
-; byte is received
+;-------------------------------------------------------------------------------
+; SUBROUTINE: RECEIVE_STRING
+;-------------------------------------------------------------------------------
+;  keeps reading string in byte-by-byte until a CR byte is received
+; 
+;  inputs:
+;    hl - pointer to the beginning of the string to be saved
+;
+;  outputs:
+;    none
+;
+;  modifies:
+;    a, f, hl
+;-------------------------------------------------------------------------------
 receive_string:
 	call receive_byte
 	cp $0d
@@ -59,12 +80,25 @@ _receive_string_continue:
 	inc hl
 	call send_byte
 	jp receive_string
-; end of RECEIVE_STRING
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: RECEIVE_STRING
+;-------------------------------------------------------------------------------
 
 
-;; SUBROUTINE SEND_STRING
-; keeps sending a string byte-by-byte using SEND_BYTE until 
-; NULL character is detected
+;-------------------------------------------------------------------------------
+; SUBROUTINE: SEND_STRING
+;-------------------------------------------------------------------------------
+;  keeps sending a string byte-by-byte until a NULL character is detected
+; 
+;  inputs:
+;    hl - pointer to the beginning of the string
+;
+;  outputs:
+;    none
+;
+;  modifies:
+;    a, f, hl, b
+;-------------------------------------------------------------------------------
 send_string:
 	ld a, (hl)
 	cp 0
@@ -74,25 +108,53 @@ _send_string_send_byte:
 	call send_byte
 	inc hl
 	jp send_string
-; end of SEND_STRING
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: SEND_STRING
+;-------------------------------------------------------------------------------
 
 
-;; SUBROUTINE RECEIVE_BYTE
+;-------------------------------------------------------------------------------
+; SUBROUTINE: RECEIVE_BYTE
+;-------------------------------------------------------------------------------
 ;  waits until receive buffer full flag goes low (data is present)
-;  and returns the data in register a
+;  and returns the data
+;
+;  inputs:
+;    none
+;
+;  outputs:
+;    a - byte received
+;
+;  modifies:
+;    a, f
+;-------------------------------------------------------------------------------
 receive_byte:
 	in a, (SER_FLAG)
         bit SER_BIT_RXE, a
         jp nz, receive_byte
 	in a, (SER_DATA)
 	ret
-; end of RECEIVE_BYTE
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: RECEIVE_BYTE
+;-------------------------------------------------------------------------------
 
 
-;; SUBROUTINE SEND_BYTE
+;-------------------------------------------------------------------------------
+; SUBROUTINE: SEND_BYTE
+;-------------------------------------------------------------------------------
 ;  waits until the transmit buffer empty flag goes high (in case
 ;  there is a pending transmission) and then writes the 
-;  byte from register a into the transmit buffer
+;  byte into the transmit buffer
+;
+;  inputs:
+;    a - byte to be transmitted
+;
+;  outputs:
+;    none
+;
+;  modifies:
+;    a, b, f
+;-------------------------------------------------------------------------------
 send_byte:
 	ld b, a
 _send_byte_wait:
@@ -102,11 +164,25 @@ _send_byte_wait:
 	ld a, b
 	out (SER_DATA), a
 	ret
-; end of SEND_BYTE
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: SEND_BYTE
+;-------------------------------------------------------------------------------
 
 
-;; SUBROUTINE DELAY
+;-------------------------------------------------------------------------------
+; SUBROUTINE: DELAY
+;-------------------------------------------------------------------------------
 ; makes processor busy for about half a second
+;
+;  inputs:
+;    none
+;
+;  outputs:
+;    none
+;
+;  modifies:
+;    b, d, e
+;-------------------------------------------------------------------------------
 delay:
 	ld b, $02
 _delay0:
@@ -121,11 +197,25 @@ _delay2:
 	dec b
 	jp nz, _delay0
 	ret
-; end of DELAY
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: DELAY
+;-------------------------------------------------------------------------------
 
+
+;===============================================================================
+; DATA
+;===============================================================================
 
 message_string:
 	db "Z80 Computer by Jakub Hladik", $0a, $0d, $0a, $20, $3e, $20, $00
+;-------------------------------------------------------------------------------
+
+
+;===============================================================================
+; PADDING
+;===============================================================================
 
 ; pad file to eeprom size
 	ds	ROM_SIZE - $
+;-------------------------------------------------------------------------------
+

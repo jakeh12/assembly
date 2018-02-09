@@ -41,14 +41,14 @@ init:
 
 
 main:	
-	ld hl, RAM_START
-	call receive_data
-	jp RAM_START
-	;call receive_byte
+	;ld hl, RAM_START
+	;call receive_data
+	;jp RAM_START
+	call receive_byte
 	;ld hl, RAM_START
 	;call conv_to_ascii_hex
 	;ld hl, RAM_START
-	;call send_string
+	call send_byte
 	jp main
 
 
@@ -56,6 +56,8 @@ main:
 ; takes in a byte in register a and saves the string in memory
 ; address saved in hl
 conv_to_ascii_hex:
+	push bc
+	push hl
 	ld b, a
 	srl a			; extract the upper 4 bits
 	srl a
@@ -70,6 +72,8 @@ conv_to_ascii_hex:
         ld (hl), a
 	inc hl
 	ld (hl), $00		; add terminating NULL
+	pop hl
+	pop bc
 	ret
 
 __conv_to_ascii_hex_offset:
@@ -81,7 +85,7 @@ _conv_to_ascii_hex_offset_0_9:
         add 48                  ; number is in range 0-9
 _conv_to_ascii_hex_offset_done:	
 	ret
-
+; end of CONV_TO_ASCII_HEX
 
 ;; SUBROUTINE RECEIVE_DATA
 ; waits two bytes which define the number of bytes
@@ -89,27 +93,44 @@ _conv_to_ascii_hex_offset_done:
 ; starting at address stored in hl
 receive_data:
 	call receive_byte	; store the data length in the
-	ld b, a			; bc register, little endian
+	ld c, a			; bc register, little endian
 	call receive_byte	; ordering
-	ld c, a
-	ld de, hl
-	ld hl, receive_data_start
-	call send_string
-	ld hl, de
+	ld b, a
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	ld de, hl;;;;;;;;;;;;;;;;;;;;;;;;
+	ld hl, receive_data_start;;;;;;;;;;;;
+	call send_string;;;;;;;;;;;;;;;;;;;
+	ld hl, de;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 _receive_data_loop:
 	call receive_byte	; loop until all the data bytes
 	ld (hl), a		; are received
-	ld de, hl
-	ld hl, $ff00
-	call conv_to_ascii_hex
-	ld hl, $ff00
-	call send_string
-	ld hl, de
+	;;;;;;;;;;;;;;;;;;;;;;;;;
+	ld de, hl;;;;;;;;;;;;;;;;;;;;;;;
+	ld hl, $ff00;;;;;;;;;;;;;;;;;
+	call conv_to_ascii_hex;;;;;;;;;;;;;;
+	ld hl, $ff00;;;;;;;;;;;;;;;;;
+	call send_string;;;;;;;;;;;;;;;
+	ld a, $20;;;;;;;;;;;;;;;;;;;;;;
+	call send_byte;;;;;;;;;;
+	ld hl, de;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	inc hl
 	dec bc
+	ld a, b
+	cp 0      
 	jp nz, _receive_data_loop
-	ld hl, receive_data_end
-	call send_string
+	ld a, c
+	cp 0
+	jp nz, _receive_data_loop
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	ld a, $0a;;;;;;;;;;;;;;;;;;;;;;;
+	call send_byte;;;;;;;;;;;;;;;;;
+	ld a, $0d;;;;;;;;;;;;;;;;;;;;;;
+	call send_byte;;;;;;;;;;;;;;;;;;;;
+	ld hl, receive_data_end;;;;;;;;;;;;;;;;;;;
+	call send_string;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;
 	ret
 
 
@@ -117,10 +138,12 @@ _receive_data_loop:
 ; keeps reading string in byte-by-byte until a CR
 ; byte is received
 receive_string:
+	push hl
 	call receive_byte
 	cp $0d
 	jp nz, _receive_string_continue
 	ld (hl), 0
+	pop hl
 	ret
 _receive_string_continue:
 	ld (hl), a
@@ -134,9 +157,11 @@ _receive_string_continue:
 ; keeps sending a string byte-by-byte using SEND_BYTE until 
 ; NULL character is detected
 send_string:
+	push hl
 	ld a, (hl)
 	cp 0
 	jp nz, _send_string_send_byte
+	pop hl
 	ret
 _send_string_send_byte:
 	call send_byte
@@ -162,6 +187,7 @@ receive_byte:
 ;  there is a pending transmission) and then writes the 
 ;  byte from register a into the transmit buffer
 send_byte:
+	push bc
 	ld b, a
 _send_byte_wait:
 	in a, (SER_FLAG)
@@ -169,6 +195,7 @@ _send_byte_wait:
 	jp nz, _send_byte_wait
 	ld a, b
 	out (SER_DATA), a
+	pop bc
 	ret
 ; end of SEND_BYTE
 
@@ -176,18 +203,22 @@ _send_byte_wait:
 ;; SUBROUTINE DELAY
 ; makes processor busy for about half a second
 delay:
+	push bc
+	push de
 	ld b, $02
 _delay0:
-	ld d, $ff
+	ld c, $ff
 _delay1:
-	ld e, $ff
+	ld d, $ff
 _delay2:
-	dec e
-	jp nz, _delay2
 	dec d
+	jp nz, _delay2
+	dec c
 	jp nz, _delay1
 	dec b
 	jp nz, _delay0
+	pop de
+	pop bc
 	ret
 ; end of DELAY
 

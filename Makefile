@@ -1,4 +1,4 @@
-TARGET=transfer
+TARGET=string
 PROM=AT28C256
 PORT=/dev/ttyUSB0
 
