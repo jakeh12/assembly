@@ -5,7 +5,7 @@ PORT=/dev/ttyUSB0
 all:
 	zasm --z80 -buy -i $(TARGET).asm -o $(TARGET).bin
 clean:
-	rm -f *.bin *.lst screenlog.*
+	rm -f $(TARGET).bin $(TARGET).lst screenlog.*
 flash:
 	minipro -p $(PROM) -w $(TARGET).bin
 	wc -c $(TARGET).bin

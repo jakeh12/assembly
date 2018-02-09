@@ -45,10 +45,24 @@ init:
 
 
 main:
-	call receive_byte
 	ld hl, RAM_START
-	call conv_to_ascii_hex
-	ld hl, RAM_START
+	call receive_data
+	
+	push bc	
+	ld hl, $ff00
+	ld a, b
+	call to_hex
+	ld hl, $ff00
+	call send_string
+	pop bc
+	
+	ld hl, $ff00
+	ld a, c
+	call to_hex
+	ld hl, $ff00
+	call send_string
+	
+	ld hl, message_string
 	call send_string
 	jp main
 
@@ -59,7 +73,46 @@ main:
 
 
 ;-------------------------------------------------------------------------------
-; SUBROUTINE: CONV_TO_ASCII_HEX
+; SUBROUTINE: RECEIVE_DATA
+;-------------------------------------------------------------------------------
+;  wait for two bytes which define the lenght of the byte stream to be received
+;  and stores the received bytes in the memory
+; 
+;  inputs:
+;    hl	- pointer to the beginning of the location where to store the data
+;
+;  outputs:
+;    bc - the lenght of the data stored at location hl
+;
+;  modifies:
+;    af, bc, de, hl
+;-------------------------------------------------------------------------------
+receive_data:
+	call receive_byte
+	ld c, a
+	call receive_byte
+	ld b, a
+	ld de, bc
+_receive_data_loop:
+	call receive_byte
+	ld (hl), a
+	inc hl
+	dec bc
+	ld a, b
+	cp 0
+	jr nz, _receive_data_loop
+	ld a, c
+	cp 0
+	jr nz, _receive_data_loop
+	ld bc, de
+	ret
+;-------------------------------------------------------------------------------
+; END OF SUBROUTINE: RECEIVE DATA
+;-------------------------------------------------------------------------------
+
+
+;-------------------------------------------------------------------------------
+; SUBROUTINE: TO_HEX
 ;-------------------------------------------------------------------------------
 ;  converts a number into hex ascii string
 ; 
@@ -73,33 +126,33 @@ main:
 ;  modifies:
 ;    af, bc, hl
 ;-------------------------------------------------------------------------------
-conv_to_ascii_hex:
+to_hex:
 	ld b, a
 	ld c, 2
 	srl a			; extract the upper 4 bits
 	srl a
 	srl a
 	srl a
-_conv_to_ascii_hex_offset:
+_to_hex_offset:
         cp 10
-        jp m, _conv_to_ascii_hex_offset_0_9
+        jp m, _to_hex_offset_0_9
         add 'a'-10		; number is in range a-f
-        jr _conv_to_ascii_hex_offset_done
-_conv_to_ascii_hex_offset_0_9:
+        jr _to_hex_offset_done
+_to_hex_offset_0_9:
         add '0'			; number is in range 0-9
-_conv_to_ascii_hex_offset_done:
+_to_hex_offset_done:
 	ld (hl), a
 	inc hl
 	dec c
-	jr z, _conv_to_ascii_hex_done
+	jr z, _to_hex_done
 	ld a, b
 	and %00001111		; extract the lower 4 bits
-	jr _conv_to_ascii_hex_offset
-_conv_to_ascii_hex_done:
+	jr _to_hex_offset
+_to_hex_done:
 	ld (hl), $00		; add terminating NULL
 	ret
 ;-------------------------------------------------------------------------------
-; END OF SUBROUTINE: CONV_TO_ASCII_HEX
+; END OF SUBROUTINE: TO_HEX
 ;-------------------------------------------------------------------------------
 
 
@@ -255,7 +308,7 @@ _delay2:
 ;===============================================================================
 
 message_string:
-	db "Z80 Computer by Jakub Hladik", $0a, $0d, $0a, $20, $3e, $20, $00
+	db " (hex) bytes received.", $0a, $0d, $00
 ;-------------------------------------------------------------------------------
 
 
